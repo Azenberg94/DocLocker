@@ -105,7 +105,32 @@ def signup(request):
 def login(request):
     msgError = ""
     if(request.method == 'POST') :
-        print("test");
+        cursor = connection.cursor()
+        username = request.POST.get('username')
+        pwd = request.POST.get('password')
+        cursor.execute("SELECT login FROM user WHERE login = '" + username + "'")
+        row = cursor.fetchone()
+
+        if not row:
+            msgError = "The username entered is unknown in our database"
+        else:
+            cursor.execute("SELECT password, salt FROM user WHERE login = '" + username + "'")
+            row = cursor.fetchone()
+            dbPwd = row[0]
+            salt = row[1]
+            pwd = pwd + salt
+            hashedPwd = hashlib.sha256(pwd.encode("utf-8")).hexdigest()
+            if hashedPwd == dbPwd:
+                request.session['user'] = username
+                print("'" + request.session['user'] + "' is connected !");
+            else:
+                msgError = "You have entered a wrong password"
+                print(msgError)
+
+
+
+
+
     """Renders the login page."""
     assert isinstance(request, HttpRequest)
     return render(
@@ -135,7 +160,7 @@ def uploadDoc(request):
         request,
         'app/uploadDoc.html',
         {
-            'title':'signup',
+            'title':'Upload of your documents',
             'year':datetime.now().year,
         }
     )
