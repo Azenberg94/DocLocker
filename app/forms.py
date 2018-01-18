@@ -33,3 +33,7 @@ class BootstrapSignupForm(UserCreationForm):
                                widget=forms.PasswordInput({
                                    'class': 'form-control',
                                    'placeholder':'retaper Password'}))
+    phoneNumber = forms.CharField(label=_("Numero de téléphone"),
+                               widget=forms.NumberInput({
+                                   'class': 'form-control',
+                                   'placeholder':'0606060606'}))

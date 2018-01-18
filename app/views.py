@@ -3,6 +3,7 @@ Definition of views.
 """
 
 from django.shortcuts import render
+from app.helper import sendCode, verifyCode, formatNumberToInternationNumber
 from django.http import HttpRequest
 from django.template import RequestContext
 from datetime import datetime
@@ -63,25 +64,33 @@ def about(request):
 def signup(request):
     msgError = ""
     if(request.method == 'POST') :
+        msgError = "";
         username = request.POST.get('username')
         pwd = request.POST.get('password')
         confirmPwd = request.POST.get('confirmPassword')
+        phoneNumber = request.POST.get('phoneNumber')
+        #sendCode("azedine");
+        #verifyCode("124545", "azedine");
+        internationalPhoneNumber = formatNumberToInternationNumber(phoneNumber);
+        if(internationalPhoneNumber == False):
+            msgError += "Numero Invalide !\n";
         print(re.search("[A-Z]+", pwd))
         print(re.search("[a-z]+", pwd))
         print(re.search("[0-9]+", pwd))
         print(re.search("[^ \w]+", pwd))
         if(len(pwd)<8 or re.search("[A-Z]+", pwd) == None or re.search("[a-z]+", pwd) == None or re.search("[0-9]+", pwd) == None or re.search("[^ \w]+", pwd) == None): 
-            msgError = "Mot de passe incorrect : minimun 8 caracteres, avec au moins une majuscule, une minuscule, un chiffre et un caractère spéciale (caractères \"_\" non accepté) ! "
+            msgError += "Mot de passe incorrect : minimum 8 caracteres, avec au moins une majuscule, une minuscule, un chiffre et un caractère spéciale (caractères \"_\" non accepté) ! "
         elif(confirmPwd != pwd):
-            msgError = "Mots de passe différents !"
-        else :
+            msgError += "Mots de passe différents !"
+        if(msgError == "") :
             liste_char=string.ascii_letters+string.digits
             salty =""
             for i in range(50):
                 salty+=liste_char[random.randint(0,len(liste_char)-1)]
             pwdSalty = pwd + salty
             myHash = hashlib.sha256(pwdSalty.encode("utf-8")).hexdigest()
-            connection.cursor().execute("insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"')")
+            queryString = "insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"'  , '"+internationalPhoneNumber+"', null, null)";
+            connection.cursor().execute(queryString)
         print (msgError);
     """Renders the about page."""
     assert isinstance(request, HttpRequest)

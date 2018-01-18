@@ -29,6 +29,12 @@
                     </div>
                 </div>
                 <div class="form-group">
+                    <label for="id_username" class="col-md-2 control-label">Phone number (2-FA)</label>
+                    <div class="col-md-10">
+                        {{ form.phoneNumber }}
+                    </div>
+                </div>
+                <div class="form-group">
                     <div class="col-md-offset-2 col-md-10">
                         <input type="hidden" name="next" value="/" />
                         <input type="submit" value="Sign up" class="btn btn-default" />
