@@ -1,5 +1,6 @@
-Django==1.11.6
+Django==2.0.1
 gunicorn==19.7.1
+mysqlclient==1.3.12
 pip==9.0.1
 PyMySQL==0.7.11
 pytz==2017.2

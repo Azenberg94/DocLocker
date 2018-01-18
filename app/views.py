@@ -81,8 +81,13 @@ def signup(request):
                 salty+=liste_char[random.randint(0,len(liste_char)-1)]
             pwdSalty = pwd + salty
             myHash = hashlib.sha256(pwdSalty.encode("utf-8")).hexdigest()
-            connection.cursor().execute("insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"')")
-        print (msgError);
+            try:
+                connection.cursor().execute("insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"')")
+                connection.commit();
+            except:
+                print("Insert error !")
+                raise
+            print (msgError);
     """Renders the about page."""
     assert isinstance(request, HttpRequest)
     return render(

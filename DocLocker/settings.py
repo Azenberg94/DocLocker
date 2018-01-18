@@ -24,10 +24,10 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = '3e6b5c61-6f7d-4f7c-9367-179daeda222a'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
-ALLOWED_HOSTS = [".herokuapp.com"]
-
+# ALLOWED_HOSTS = [".herokuapp.com"]
+ALLOWED_HOSTS = []
 
 # Application definition
 
@@ -80,10 +80,10 @@ WSGI_APPLICATION = 'DocLocker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'heroku_095ffcc1072206b',
-        'USER': 'b5b71a0457d2c2',
-        'PASSWORD': 'a4d789dc',
-        'HOST': 'eu-cdbr-west-01.cleardb.com',   # Or an IP Address that your DB is hosted on
+        'NAME': 'coffrefort',
+        'USER': 'root',
+        'PASSWORD': 'root',
+        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
         'PORT': '3306',
     }
 }
