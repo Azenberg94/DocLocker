@@ -4,6 +4,7 @@ Definition of views.
 
 from django.shortcuts import render
 from django.http import HttpRequest
+from django.http import HttpResponse
 from django.template import RequestContext
 from datetime import datetime
 from django.db import connection
@@ -88,7 +89,8 @@ def signup(request):
                 print("Insert error !")
                 raise
             print (msgError);
-    """Renders the about page."""
+
+    """Renders the signup page."""
     assert isinstance(request, HttpRequest)
     return render(
         request,
@@ -99,6 +101,26 @@ def signup(request):
             'year':datetime.now().year,
         }
     )
+
+def login(request):
+    msgError = ""
+    if(request.method == 'POST') :
+        print("test");
+    """Renders the login page."""
+    assert isinstance(request, HttpRequest)
+    return render(
+        request,
+        'app/login.html',
+        {
+            'title':'Sign in',
+            'form': app.forms.BootstrapAuthenticationForm,
+            'year':datetime.now().year,
+        }
+    )
+
+def logout(request):
+
+    return HttpResponse("""<p>Testing login !!!</p>""")
 
 def uploadDoc(request):
 
