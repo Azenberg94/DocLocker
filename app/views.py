@@ -84,7 +84,6 @@ def signup(request):
             myHash = hashlib.sha256(pwdSalty.encode("utf-8")).hexdigest()
             try:
                 connection.cursor().execute("insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"')")
-                connection.commit();
             except:
                 print("Insert error !")
                 raise
@@ -128,9 +127,6 @@ def login(request):
                 print(msgError)
 
 
-
-
-
     """Renders the login page."""
     assert isinstance(request, HttpRequest)
     return render(
@@ -144,8 +140,18 @@ def login(request):
     )
 
 def logout(request):
+    request.session.flush();
 
-    return HttpResponse("""<p>Testing login !!!</p>""")
+    """Renders the home page."""
+    assert isinstance(request, HttpRequest)
+    return render(
+        request,
+        'app/index.html',
+        {
+            'title':'Home Page',
+            'year':datetime.now().year,
+        }
+    )
 
 def uploadDoc(request):
 
