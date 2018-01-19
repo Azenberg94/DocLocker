@@ -5,11 +5,13 @@ Definition of views.
 from django.shortcuts import render
 from app.helper import sendCode, verifyCode, formatNumberToInternationNumber
 from django.http import HttpRequest
+from django.http import HttpResponse
 from django.template import RequestContext
 from datetime import datetime
 from django.db import connection
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from ratelimit.decorators import ratelimit
 
 
 import app.forms
@@ -94,7 +96,7 @@ def signup(request):
             connection.cursor().execute(queryString)
         print (msgError);
 
-    """Renders the about page."""
+    """Renders the signup page."""
     assert isinstance(request, HttpRequest)
     return render(
         request,
@@ -102,6 +104,76 @@ def signup(request):
         {
             'title':'signup',
             'form': app.forms.BootstrapSignupForm,
+            'year':datetime.now().year,
+        }
+    )
+
+@ratelimit(key='ip', rate='5/m', method='POST')
+def login(request):
+    msgError = ""
+
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        msgError = "Too many connexion attemps, please wait few moments before retrying"
+        print(msgError)
+        assert isinstance(request, HttpRequest)
+        return render(
+            request,
+            'app/login.html',
+            {
+                'title':'Sign in',
+                'form': app.forms.BootstrapAuthenticationForm,
+                'year':datetime.now().year,
+            }
+        )
+
+    if(request.method == 'POST') :
+        cursor = connection.cursor()
+        username = request.POST.get('username')
+        pwd = request.POST.get('password')
+        cursor.execute("SELECT login FROM user WHERE login = '" + username + "'")
+        row = cursor.fetchone()
+
+        if not row:
+            msgError = "The username entered is unknown in our database"
+        else:
+            cursor.execute("SELECT password, salt FROM user WHERE login = '" + username + "'")
+            row = cursor.fetchone()
+            dbPwd = row[0]
+            salt = row[1]
+            pwd = pwd + salt
+            hashedPwd = hashlib.sha256(pwd.encode("utf-8")).hexdigest()
+            if hashedPwd == dbPwd:
+                request.session['user'] = username
+                print("'" + request.session['user'] + "' is connected !");
+            else:
+                msgError = "You have entered a wrong password"
+                print(msgError)
+
+
+    """Renders the login page."""
+    assert isinstance(request, HttpRequest)
+    return render(
+        request,
+        'app/login.html',
+        {
+            'title':'Sign in',
+            'form': app.forms.BootstrapAuthenticationForm,
+            'year':datetime.now().year,
+        }
+    )
+
+
+def logout(request):
+    request.session.flush();
+
+    """Renders the home page."""
+    assert isinstance(request, HttpRequest)
+    return render(
+        request,
+        'app/index.html',
+        {
+            'title':'Home Page',
             'year':datetime.now().year,
         }
     )
@@ -119,7 +191,7 @@ def uploadDoc(request):
         request,
         'app/uploadDoc.html',
         {
-            'title':'signup',
+            'title':'Upload of your documents',
             'year':datetime.now().year,
         }
     )
