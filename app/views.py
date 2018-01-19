@@ -12,6 +12,8 @@ from django.db import connection
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
 from ratelimit.decorators import ratelimit
+from app.utils.encryption import cbc
+from django.shortcuts import redirect
 
 
 import app.forms
@@ -137,15 +139,17 @@ def login(request):
         if not row:
             msgError = "The username entered is unknown in our database"
         else:
-            cursor.execute("SELECT password, salt FROM user WHERE login = '" + username + "'")
+            cursor.execute("SELECT password, salt, id FROM user WHERE login = '" + username + "'")
             row = cursor.fetchone()
             dbPwd = row[0]
             salt = row[1]
+            id = row[2]
             pwd = pwd + salt
             hashedPwd = hashlib.sha256(pwd.encode("utf-8")).hexdigest()
             if hashedPwd == dbPwd:
-                request.session['user'] = username
-                print("'" + request.session['user'] + "' is connected !");
+                request.session['userId'] = id
+                request.session['username'] = username
+                print("'" + request.session['username'] + "' is connected !");
             else:
                 msgError = "You have entered a wrong password"
                 print(msgError)
@@ -179,11 +183,22 @@ def logout(request):
     )
 
 def uploadDoc(request):
+    userId = request.session.get('userId', None)
+    if not userId:
+        return redirect('home')
 
     if request.method == 'POST' and request.FILES['myfile']:
+        username = request.session['username']
+
         myfile = request.FILES['myfile']
         fs = FileSystemStorage()
-        filename = fs.save("uploaddoc/"+myfile.name, myfile)
+        path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
+        filename = myfile.name
+
+        cursor = connection.cursor()
+        queryString = "INSERT INTO file VALUES (null, '"+filename+"', '" +path+ "', '"+str(userId)+"')";
+        cursor.execute(queryString)
+
         
 
     assert isinstance(request, HttpRequest)
