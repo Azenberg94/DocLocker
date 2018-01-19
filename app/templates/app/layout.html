@@ -19,11 +19,11 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a href="/" class="navbar-brand">Application name</a>
+                <a href="/" class="navbar-brand">DocLocker</a>
             </div>
             <div class="navbar-collapse collapse">
                 <ul class="nav navbar-nav">
-                    <li><a href="{% url 'uploadDoc' %}">upload doc</a></li>
+                    <li><a href="{% url 'uploadDoc' %}">Upload File</a></li>
                 </ul>
                 {% include 'app/loginpartial.html' %}
             </div>
@@ -34,7 +34,7 @@
 {% block content %}{% endblock %}
         <hr/>
         <footer>
-            <p>&copy; {{ year }} - My Django Application</p>
+            <p>&copy; {{ year }} - DocLocker</p>
         </footer>
     </div>
 

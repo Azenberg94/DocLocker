@@ -38,7 +38,7 @@ def verifyCode(code, username):
     if(row != None):
         validationCode = row[0];
         lastGenTimestamp = row[1];
-        if(validationCode == code):
+        if(str(validationCode) == code):
             return True
         return "Le code est incorrect"
     return "Le code est expiré"

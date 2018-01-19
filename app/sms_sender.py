@@ -11,6 +11,6 @@ def sendMessage(destination, code, username):
     client.api.account.messages.create(
     to=destination,
     from_="+14157375390",
-    body=username+",\nVotre code d'authentification est le: "+code+".\nCe code expirera dans 15 minutes")
+    body=username+",\nYour authentication code is: "+code+".\nThis code will expire in 15 minutes")
 
     return True;

@@ -1,33 +1,37 @@
 {% extends "app/layout.html" %}
-
+{% load staticfiles %}
 {% block content %}
 
-<div class="jumbotron">
-    <h1>Django</h1>
-    <p class="lead">Django is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-    <p><a href="https://www.djangoproject.com/" class="btn btn-primary btn-large">Learn more &raquo;</a></p>
-</div>
+<img src="{% static 'app/yoGDi9q.png' %}" width="100%" alt="DocLock">
 
 <div class="row">
     <div class="col-md-4">
-        <h2>Getting started</h2>
+        <h2>Signing up</h2>
         <p>
-            Django gives you a powerful, patterns-based way to build dynamic websites that
-            enables a clean separation of concerns and gives you full control over markup
-            for enjoyable, agile development.
+            Signing up gives you the opportunity to have an account, which is necessary to visit the website and upload documents.
+            A valid phone number is necessary to open an account.
         </p>
-        <p><a class="btn btn-default" href="http://www.djangobook.com/en/2.0/index.html">Learn more &raquo;</a></p>
+        <p><a class="btn btn-default" href="/signup">Sign up &raquo;</a></p>
+    </div>
+    {% if request.session.validated %}
+    <div class="col-md-4">
+        <h2>Uploading documents</h2>
+        <p>Upload documents and files safely right now.</p>
+        <p><a class="btn btn-default" href="/uploadDoc">Start uploading &raquo;</a></p>
     </div>
     <div class="col-md-4">
-        <h2>Get more libraries</h2>
-        <p>The Python Package Index is a repository of software for the Python programming language.</p>
-        <p><a class="btn btn-default" href="https://pypi.org/">Learn more &raquo;</a></p>
+        <h2>Logging out</h2>
+        <p>Wish to leave? 
+        Simply click this button, all your authentication data will be flushed</p>
+        <p><a class="btn btn-default" href="/logout">Leave safely &raquo;</a></p>
     </div>
+    {% else %}
     <div class="col-md-4">
-        <h2>Microsoft Azure</h2>
-        <p>You can easily publish to Microsoft Azure using Visual Studio. Find out how you can host your application using a free trial today.</p>
-        <p><a class="btn btn-default" href="http://azure.microsoft.com">Learn more &raquo;</a></p>
+        <h2>Logging in</h2>
+        <p>Already have an account? Get your phone (2FA) and log-in</p>
+        <p><a class="btn btn-default" href="/login">Learn more &raquo;</a></p>
     </div>
+    {% endif %}
 </div>
 
 {% endblock %}
