@@ -21,8 +21,8 @@ urlpatterns = [
     url(r'^about', app.views.about, name='about'),
     url(r'^signup', app.views.signup, name='signup'),
     url(r'^uploadDoc', app.views.uploadDoc, name='uploadDoc'),
-    url(r'^login$', app.views.login, name='login'),
-    url(r'^logout$', app.views.logout, name='logout'),
+    url(r'^login', app.views.login, name='login'),
+    url(r'^logout', app.views.logout, name='logout'),
 
     # Uncomment the admin/doc line below to enable admin documentation:
     # url(r'^admin/doc/', include('django.contrib.admindocs.urls')),

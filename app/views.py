@@ -10,6 +10,7 @@ from datetime import datetime
 from django.db import connection
 from django.conf import settings
 from django.core.files.storage import FileSystemStorage
+from ratelimit.decorators import ratelimit
 
 
 import app.forms
@@ -101,8 +102,25 @@ def signup(request):
         }
     )
 
+@ratelimit(key='ip', rate='5/m', method='POST')
 def login(request):
     msgError = ""
+
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        msgError = "Too many connexion attemps, please wait few moments before retrying"
+        print(msgError)
+        assert isinstance(request, HttpRequest)
+        return render(
+            request,
+            'app/login.html',
+            {
+                'title':'Sign in',
+                'form': app.forms.BootstrapAuthenticationForm,
+                'year':datetime.now().year,
+            }
+        )
+
     if(request.method == 'POST') :
         cursor = connection.cursor()
         username = request.POST.get('username')
@@ -138,6 +156,7 @@ def login(request):
             'year':datetime.now().year,
         }
     )
+
 
 def logout(request):
     request.session.flush();
