@@ -21,6 +21,7 @@ import re
 import hashlib
 import string
 import random
+import os
 
 
 
@@ -198,6 +199,15 @@ def uploadDoc(request):
         cursor = connection.cursor()
         queryString = "INSERT INTO file VALUES (null, '"+filename+"', '" +path+ "', '"+str(userId)+"')";
         cursor.execute(queryString)
+
+        queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
+        cursor.execute(queryString)
+        row = cursor.fetchone()
+        password = bytearray(row[0], 'utf-8')
+        hashedUser = bytearray(hashlib.sha256(username.encode("utf-8")).hexdigest(), 'utf-8')
+        cbc("encrypt", password, hashedUser, path, "uploaddoc/azedine/test2.txt")
+        os.remove(path)
+        os.rename("uploaddoc/azedine/test2.txt", path)
 
         
 
