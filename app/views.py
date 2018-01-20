@@ -124,7 +124,7 @@ def login(request):
     was_limited = getattr(request, 'limited', False)
     if was_limited:
         msgError.append("Too many connexion attemps, please wait few moments before retrying")
-        print(msgError)
+
         assert isinstance(request, HttpRequest)
         return render(
             request,
@@ -155,15 +155,14 @@ def login(request):
             pwd = pwd + salt
             hashedPwd = hashlib.sha256(pwd.encode("utf-8")).hexdigest()
             if hashedPwd == dbPwd:
-                request.session['user'] = username
-                request.session.save()
-                print("'" + request.session['user'] + "' is connected !");
+                request.session['userId'] = id
+                request.session['username'] = username
+
                 """Renders the validation page."""
                 sendCode(username);
                 return redirect('/twoFactor')
             else:
                 msgError.append("You have entered the wrong password");
-                print(msgError)
 
 
     """Renders the login page."""
@@ -180,18 +179,21 @@ def login(request):
     )
 
 def twoFactor(request):
-    if(request.session.get('user', None) == None or request.session.get('validated', None) == True):
+    if(request.session.get('username', None) == None or request.session.get('validated', None) == True):
         return redirect('/home')
+
     msgError = [];
     if(request.method == 'POST') :
         code = request.POST.get('code')
-        user = request.session['user'];
+        user = request.session['username'];
         verify = verifyCode(code, user);
         if(verify == True):
             request.session['validated'] = True;
-            request.session.save()
+
             return redirect('/home')
-        else: msgError.append(verify);
+        else:
+            request.session.flush()
+            msgError.append(verify)
 
     return render(
             request,
@@ -207,7 +209,8 @@ def twoFactor(request):
 def logout(request):
     if(request.session.get('validated', None) == None):
         return redirect('/home')
-    request.session.flush();
+
+    request.session.flush()
 
     """Renders the home page."""
     assert isinstance(request, HttpRequest)
@@ -219,8 +222,11 @@ def uploadDoc(request):
 
     if request.method == 'POST' and request.FILES['myfile']:
         username = request.session['username']
+        userId = request.session['userId']
 
         myfile = request.FILES['myfile']
+        if not os.path.exists('uploaddoc/' + username):
+            os.makedirs('uploaddoc/' + username)
         fs = FileSystemStorage()
         path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
         filename = myfile.name
