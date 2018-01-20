@@ -195,20 +195,28 @@ def uploadDoc(request):
         fs = FileSystemStorage()
         path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
         filename = myfile.name
-
+        
         cursor = connection.cursor()
         queryString = "INSERT INTO file VALUES (null, '"+filename+"', '" +path+ "', '"+str(userId)+"')";
         cursor.execute(queryString)
 
+        queryString = "SELECT MAX(id) FROM file WHERE userId = '" + str(userId) + "'"
+        cursor.execute(queryString)
+        row = cursor.fetchone()
+        fileId = str(row[0])
+
+        iv = username + '-' + fileId
+        tempFilename = filename.split('.')[0] + '_' + iv + '.' + filename.split('.')[1]
+        
         queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
         cursor.execute(queryString)
         row = cursor.fetchone()
-        password = bytearray(row[0], 'utf-8')
-        hashedUser = bytearray(hashlib.sha256(username.encode("utf-8")).hexdigest(), 'utf-8')
-        cbc("encrypt", password, hashedUser, path, "uploaddoc/azedine/test2.txt")
-        os.remove(path)
-        os.rename("uploaddoc/azedine/test2.txt", path)
+        password = bytearray(row[0].encode('utf-8'))
+        iv = bytearray(hashlib.sha256(iv.encode("utf-8")).hexdigest(), 'utf-8')
 
+        cbc('encrypt', password, iv, path, 'uploaddoc/' + username + '/' + tempFilename)
+        os.remove(path)
+        os.rename('uploaddoc/' + username + '/' + tempFilename, path)
         
 
     assert isinstance(request, HttpRequest)
