@@ -14,6 +14,9 @@ from django.core.files.storage import FileSystemStorage
 from ratelimit.decorators import ratelimit
 from app.utils.encryption import cbc
 from django.shortcuts import redirect
+from Crypto.PublicKey import RSA
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Cipher import PKCS1_OAEP
 
 
 import app.forms
@@ -27,6 +30,39 @@ import os
 
 
 def home(request):
+    password = hashlib.sha256('password'.encode("utf-8")).hexdigest()  # for testing
+    salt = bytes(hashlib.sha256('yourAppName'.encode("utf-8")).hexdigest(), 'utf-8')   # replace with random salt if you can store one
+    
+    master_key = PBKDF2(password, salt, count=1000)  # bigger count = better
+
+    def my_rand(n):
+        # kluge: use PBKDF2 with count=1 and incrementing salt as deterministic PRNG
+        my_rand.counter += 1
+        return PBKDF2(master_key, bytes("my_rand:%d" % my_rand.counter, 'utf-8'), dkLen=n, count=1)
+
+    my_rand.counter = 0
+    RSA_key = RSA.generate(2048, randfunc=my_rand)
+    f = open('mykey.pem','w+')
+    f.write(str(RSA_key.exportKey('PEM')))
+    f.close()
+
+    file_out = open("encrypted_data.bin", "wb+")
+    session_key = bytes('salut tout le monde, ça va la famille ou quoi ? aiiie !', 'utf-8')
+    print(session_key.decode('utf-8'))
+    cipher_rsa = PKCS1_OAEP.new(RSA_key.publickey())
+    file_out.write(cipher_rsa.encrypt(session_key))
+    file_out.close()
+
+    file_in = open("encrypted_data.bin", "rb")
+    enc_session_key, nonce, tag, ciphertext = \
+        [ file_in.read(x) for x in (RSA_key.size_in_bytes(), 16, 16, -1) ]
+
+    cipher_rsa = PKCS1_OAEP.new(RSA_key)
+    session_key = cipher_rsa.decrypt(enc_session_key)
+    print(enc_session_key)
+    print(session_key.decode('utf-8'))
+
+
     """Renders the home page."""
     assert isinstance(request, HttpRequest)
     return render(
@@ -87,15 +123,18 @@ def signup(request):
             msgError.append("Invalid password : minimum 8 characters, must contain at least one of the following: upper/lowercase, number and specific character (characters \"_\" not accepted) ! ");
         elif(confirmPwd != pwd):
             msgError.append("Confirmation password is different from password");
-        if(len(msgError)==0) :
+
+        # If there's no error
+        if(len(msgError) == 0) :
             liste_char=string.ascii_letters+string.digits
-            salty =""
-            for i in range(50):
-                salty+=liste_char[random.randint(0,len(liste_char)-1)]
+
+            # Definition of the salt
+            salt = username + '-' + str(len(username))
+
             pwdSalty = pwd + salty
             myHash = hashlib.sha256(pwdSalty.encode("utf-8")).hexdigest()
 
-            queryString = "insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"'  , '"+internationalPhoneNumber+"', null, null)";
+            queryString = "INSERT INTO user VALUES (null, '" + username + "', '"  + myHash +  "', '" + salty + "'  , '" + internationalPhoneNumber + "', null, null)";
             connection.cursor().execute(queryString)
             successfulCreation = True;
         else:
