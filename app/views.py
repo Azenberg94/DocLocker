@@ -3,7 +3,7 @@ Definition of views.
 """
 
 from django.shortcuts import render, redirect
-from app.helper import sendCode, verifyCode, formatNumberToInternationNumber
+from app.helper import sendCode, verifyCode, formatNumberToInternationNumber, buildFileNameTable
 from django.http import HttpRequest
 from django.http import HttpResponse
 from django.template import RequestContext
@@ -264,6 +264,40 @@ def uploadDoc(request):
         }
     )
 
+def downloadDoc(request):
+    if(request.session.get('validated', None) == None):
+        return redirect('/home')
+    cursor = connection.cursor()
+    if request.method == 'POST':
+        docId = request.POST.get('docId')
+        queryString = "SELECT server_path FROM file WHERE id = '" + docId + "';"
+        cursor.execute(queryString);
+        filepath = cursor.fetchone()[0];
+        file_path = os.path.join(settings.MEDIA_ROOT, filepath)
+        if os.path.exists(file_path):
+            with open(file_path, 'rb') as fh:
+                response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+                response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+                return response
+        raise Http404
+
+
+    userId = request.session['userId']
+    
+    queryString = "SELECT name, id FROM file WHERE userId = '" + str(userId) + "';"
+    cursor.execute(queryString);
+    filenames = cursor.fetchmany(50);
+    table = buildFileNameTable(filenames);
+    return render(
+        request,
+        'app/downloadDoc.html',
+        {
+            'title':'Download your documents',
+            'year':datetime.now().year,
+            'tableFiles': table,
+        }
+    )
+    
 
 
 

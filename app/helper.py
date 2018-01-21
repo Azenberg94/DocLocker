@@ -43,4 +43,17 @@ def verifyCode(code, username):
         return "Le code est incorrect"
     return "Le code est expiré"
 
+def buildFileNameTable(filenames):
+
+    output = "<table class=\"table table-striped\">"
+    output_keys = []
+    output += "<thead><tr><th>FileName</th><th>Download</th></tr></thead>";
+    output += "<tbody>"
+
+    for name in filenames:
+        output+= "<tr><td>"+ name[0] + "</td>";
+        output+= "<td><button type=\"button\" class=\"btn btn-default\" onclick=\"updateDocId('"+str(name[1])+"')\" ><span class=\"glyphicons glyphicons-download-alt\">Download</span></button></td></tr>";
+
+    return output + "</tbody></table>";
+
 

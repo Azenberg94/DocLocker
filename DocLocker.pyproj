@@ -67,6 +67,7 @@
   <ItemGroup>
     <Content Include="app\templates\app\twoFactor.html" />
     <Content Include="app\templates\app\signup.html" />
+    <Content Include="app\templates\app\downloadDoc.html" />
     <Content Include="app\templates\app\uploadDoc.html" />
     <Content Include="requirements.txt" />
     <Content Include="db.sqlite3" />

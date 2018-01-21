@@ -22,6 +22,7 @@ urlpatterns = [
     url(r'^about', app.views.about, name='about'),
     url(r'^signup', app.views.signup, name='signup'),
     url(r'^uploadDoc', app.views.uploadDoc, name='uploadDoc'),
+    url(r'^downloadDoc', app.views.downloadDoc, name='downloadDoc'),
     url(r'^login', app.views.login, name='login'),
     url(r'^logout', app.views.logout, name='logout'),
     url(r'^twoFactor', app.views.twoFactor, name='twoFactor'),
