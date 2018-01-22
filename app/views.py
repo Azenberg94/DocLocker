@@ -366,6 +366,7 @@ def downloadDoc(request):
     if request.method == 'POST':
         # Getting the path of the file wanted
         docId = request.POST.get('docId')
+        deleteDoc = request.POST.get('deleteDoc');
         queryString = "SELECT name FROM file WHERE id = '" + docId + "';"
         cursor.execute(queryString);
         filename = cursor.fetchone()[0];
@@ -375,7 +376,7 @@ def downloadDoc(request):
         passphrase = request.POST.get('passphrase')
         
         if passphrase == None or passphrase == '':
-            errorMsg.append('You have to enter your passphrase to download your files !')
+            errorMsg.append('You have to enter your passphrase to download/delete your files !')
         else:
             # Checking is the passphrase is right
             queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
@@ -398,48 +399,59 @@ def downloadDoc(request):
             if passUncrypted != passphrase:
                 errorMsg.append('The passphrase is incorrect')
             else:
-                # Using the passphrase to generate RSA keys of the user
-                passphrase = hashlib.sha256(passphrase.encode("utf-8")).hexdigest()
-                salt = '-docLocker-' + username + '-' + str(userId * 2018) + '-' + str(len(username) * 2018)
-                salt = bytes(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')   # replace with random salt if you can store one
+                if(deleteDoc == '0'):
+                    # Using the passphrase to generate RSA keys of the user
+                    passphrase = hashlib.sha256(passphrase.encode("utf-8")).hexdigest()
+                    salt = '-docLocker-' + username + '-' + str(userId * 2018) + '-' + str(len(username) * 2018)
+                    salt = bytes(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')   # replace with random salt if you can store one
     
-                master_key = PBKDF2(passphrase, salt, count = 1000)  # bigger count = better
+                    master_key = PBKDF2(passphrase, salt, count = 1000)  # bigger count = better
 
-                def my_rand(n):
-                    # kluge: use PBKDF2 with count=1 and incrementing salt as deterministic PRNG
-                    my_rand.counter += 1
-                    return PBKDF2(master_key, bytes("my_rand:%d" % my_rand.counter, 'utf-8'), dkLen = n, count = 1)
+                    def my_rand(n):
+                        # kluge: use PBKDF2 with count=1 and incrementing salt as deterministic PRNG
+                        my_rand.counter += 1
+                        return PBKDF2(master_key, bytes("my_rand:%d" % my_rand.counter, 'utf-8'), dkLen = n, count = 1)
 
-                my_rand.counter = 0
-                RSAkey = RSA.generate(2048, randfunc=my_rand)
+                    my_rand.counter = 0
+                    RSAkey = RSA.generate(2048, randfunc=my_rand)
 
-                keyPath = 'uploaddoc/' + username + '/key-' + str(docId) + '.bin'
+                    keyPath = 'uploaddoc/' + username + '/key-' + str(docId) + '.bin'
                 
-                f = open(keyPath, 'rb')
-                enc_session_key, nonce, tag, ciphertext = \
-                    [ f.read(x) for x in (RSAkey.size_in_bytes(), 16, 16, -1) ]
+                    f = open(keyPath, 'rb')
+                    enc_session_key, nonce, tag, ciphertext = \
+                        [ f.read(x) for x in (RSAkey.size_in_bytes(), 16, 16, -1) ]
 
-                cipher = PKCS1_OAEP.new(RSAkey)
-                session_key = cipher.decrypt(enc_session_key)
-                f.close()
+                    cipher = PKCS1_OAEP.new(RSAkey)
+                    session_key = cipher.decrypt(enc_session_key)
+                    f.close()
 
-                IV = username + '-' + str(userId * 2018)
-                IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
-                filepath = 'uploaddoc/' + username + '/' + filename
-                uncryptedFilePath = 'uploaddoc/' + username + '/' + filename.split('.')[0] + '-uncrypted.' + filename.split('.')[1]
-                cbc('decrypt', session_key, IV, filepath, uncryptedFilePath)
+                    IV = username + '-' + str(userId * 2018)
+                    IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
+                    filepath = 'uploaddoc/' + username + '/' + filename
+                    uncryptedFilePath = 'uploaddoc/' + username + '/' + filename.split('.')[0] + '-uncrypted.' + filename.split('.')[1]
+                    cbc('decrypt', session_key, IV, filepath, uncryptedFilePath)
 
-                # Sending the file to the user
-                file_path = os.path.join(settings.MEDIA_ROOT, uncryptedFilePath)
-                if os.path.exists(file_path):
-                    with open(file_path, 'rb') as f:
-                        filedata = f.read()
+                    # Sending the file to the user
+                    file_path = os.path.join(settings.MEDIA_ROOT, uncryptedFilePath)
+                    if os.path.exists(file_path):
+                        with open(file_path, 'rb') as f:
+                            filedata = f.read()
 
-                    response = HttpResponse(filedata, content_type="application/vnd.ms-excel")
-                    response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
-                    os.remove(file_path)
-                    return response
-                raise Http404
+                        response = HttpResponse(filedata, content_type="application/vnd.ms-excel")
+                        response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+                        os.remove(file_path)
+                        return response
+                    raise Http404
+                else :
+                    queryString = "SELECT server_path FROM file WHERE id = '" + docId + "';"
+                    cursor.execute(queryString);
+                    filePath = cursor.fetchone()[0];
+                    binPath = os.path.dirname(os.path.abspath(filePath))+"\\key-"+ docId +".bin";
+                    os.remove(binPath)
+                    os.remove(filePath)
+                    queryString = "delete FROM file WHERE id = '" + str(docId) + "'"
+                    cursor.execute(queryString)
+
 
 
     # Querying for user's files
@@ -452,7 +464,7 @@ def downloadDoc(request):
         request,
         'app/downloadDoc.html',
         {
-            'title':'Download your documents',
+            'title':'Manage your documents',
             'year':datetime.now().year,
             'tableFiles': table,
             'msgError': errorMsg,

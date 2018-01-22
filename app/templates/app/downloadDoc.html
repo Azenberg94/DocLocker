@@ -2,6 +2,10 @@
 
 {% block content %}
 <script type="text/javascript">
+    function deleteDocId(id) {
+        document.getElementById('deleteDoc').value = '1';
+        updateDocId(id);
+    }
     function updateDocId(id) {
         document.getElementById('docId').value = id;
         document.uploadForm.submit();
@@ -15,7 +19,7 @@
         <section id="downloadDocForm">
             <form action="" method="post" name="uploadForm" class="form-horizontal" enctype="multipart/form-data">
                 {% csrf_token %}
-                <h4>Download Doc</h4>
+                <h4>Manage Doc</h4>
                 <div class="form-group">
                     <label for="passphrase" class="col-md-2 control-label">Passphrase</label>
                     <div class="col-md-10">
@@ -25,6 +29,7 @@
                 <hr />
                 {{tableFiles |safe }}
                 <input name="docId" id="docId" type="hidden" value="0" />
+                <input name="deleteDoc" id="deleteDoc" type="hidden" value="0" />
                 {% if msgError %}
                 {% for member in msgError %}
                 <p class="validation-summary-errors">{{ member }}</p>
