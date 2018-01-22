@@ -354,6 +354,7 @@ def uploadDoc(request):
         }
     )
 
+@ratelimit(key='ip', rate='5/m', method='POST')
 def downloadDoc(request):
     if(request.session.get('validated', None) == None):
         return redirect('/home')
@@ -361,6 +362,10 @@ def downloadDoc(request):
     userId = request.session['userId']
     username = request.session['username']
     errorMsg = []
+
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        msgError.append("Too many downloads attemps, please wait few moments before retrying")
 
     cursor = connection.cursor()
     if request.method == 'POST':
