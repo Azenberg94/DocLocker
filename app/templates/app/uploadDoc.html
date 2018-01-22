@@ -22,8 +22,13 @@
                         <input type="submit" value="Upload" class="btn btn-default" />
                     </div>
                 </div>
-                {% if form.errors %}
-                <p class="validation-summary-errors">Please enter a correct user name and password.</p>
+                {% if msgError %}
+                {% for member in msgError %}
+                <p class="validation-summary-errors">{{ member }}</p>
+                {% endfor %}
+                {% endif %}
+                {% if successfulUpload %}
+                <p class="validation-summary-valid">File successfully uploaded! </p>
                 {% endif %}
             </form>
         </section>

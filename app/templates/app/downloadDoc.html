@@ -19,12 +19,17 @@
                 <div class="form-group">
                     <label for="passphrase" class="col-md-2 control-label">Passphrase</label>
                     <div class="col-md-10">
-                        <input type="text" id="passphrase" name="passphrase" maxlength="255" placeholder="Enter your secret passphrase" />
+                        <input type="text" class="form-control" autocomplete="off" id="passphrase" name="passphrase" maxlength="255" placeholder="Enter your secret passphrase" />
                     </div>
                 </div>
                 <hr />
                 {{tableFiles |safe }}
                 <input name="docId" id="docId" type="hidden" value="0" />
+                {% if msgError %}
+                {% for member in msgError %}
+                <p class="validation-summary-errors">{{ member }}</p>
+                {% endfor %}
+                {% endif %}
             </form>
         </section>
     </div>

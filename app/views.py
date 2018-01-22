@@ -25,6 +25,7 @@ import string
 import random
 import os
 import time
+import os.path
 
 
 
@@ -81,13 +82,12 @@ def signup(request):
         passphrase = request.POST.get('passphrase')
         #sendCode("azedine");
         #verifyCode("124545", "azedine");
+        if(len(passphrase) < 25):
+            msgError.append("The passphrase must be at least 25 characters long");
         internationalPhoneNumber = formatNumberToInternationNumber(phoneNumber);
         if(internationalPhoneNumber == False):
             msgError.append("Invalid phone number: must be in the following format: 0606060606");
-        print(re.search("[A-Z]+", pwd))
-        print(re.search("[a-z]+", pwd))
-        print(re.search("[0-9]+", pwd))
-        print(re.search("[^ \w]+", pwd))
+        
         if(len(pwd)<8 or re.search("[A-Z]+", pwd) == None or re.search("[a-z]+", pwd) == None or re.search("[0-9]+", pwd) == None or re.search("[^ \w]+", pwd) == None): 
             msgError.append("Invalid password : minimum 8 characters, must contain at least one of the following: upper/lowercase, number and specific character (characters \"_\" not accepted) ! ");
         elif(confirmPwd != pwd):
@@ -123,8 +123,6 @@ def signup(request):
             queryString = "INSERT INTO user VALUES (null, '" + username + "', '"  + myHash +  "', '" + salt + "'  , '" + internationalPhoneNumber + "', null, null)";
             connection.cursor().execute(queryString)
             successfulCreation = True;
-        else:
-            print (msgError);
 
     """Renders the signup page."""
     assert isinstance(request, HttpRequest)
@@ -249,6 +247,7 @@ def uploadDoc(request):
 
     # If a POST request exists...
     errorMsg = []
+    successfulUpload = False;
 
     if request.method == 'POST' and request.FILES['myfile']:
         # Getting session informations
@@ -257,15 +256,25 @@ def uploadDoc(request):
 
         # Uploading the file
         myfile = request.FILES['myfile']
-        fs = FileSystemStorage()
-        path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
         filename = myfile.name
-
+        extension = os.path.splitext(filename)[1]
+        if(extension == ".bin"):
+            errorMsg.append('.bin files are not accepted')
+        cursor = connection.cursor()
+        queryString = "SELECT id from file where name='" + filename + "';";
+        cursor.execute(queryString)
+        filenamerow = cursor.fetchone();
         if filename == 'pass' or filename == 'passTemp':
             errorMsg.append('Unallowed name of file')
-        else:  
+        elif (filenamerow!= None) : 
+            errorMsg.append('Filename already exists')
+
+
+        if(len(errorMsg) == 0) :  
+            fs = FileSystemStorage()
+            path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
             # Storing the file in the DB
-            cursor = connection.cursor()
+            
             queryString = "INSERT INTO file VALUES (null, '" + filename + "', '" + path + "', '" + str(userId) + "')";
             cursor.execute(queryString)
 
@@ -326,10 +335,11 @@ def uploadDoc(request):
             filePath = 'uploaddoc/' + username + '/key-' + str(fileId) + '.bin'
 
             f = open(filePath, 'wb+')
-            print(session_key.decode('utf-8'))
             cipher = PKCS1_OAEP.new(RSAkey.publickey())
             f.write(cipher.encrypt(session_key))
             f.close()
+            successfulUpload = True;
+
         
     # Make the render
     assert isinstance(request, HttpRequest)
@@ -339,6 +349,8 @@ def uploadDoc(request):
         {
             'title':'Upload of your documents',
             'year':datetime.now().year,
+            'msgError': errorMsg,
+            'successfulUpload' : successfulUpload,
         }
     )
 
@@ -443,6 +455,7 @@ def downloadDoc(request):
             'title':'Download your documents',
             'year':datetime.now().year,
             'tableFiles': table,
+            'msgError': errorMsg,
         }
     )
     

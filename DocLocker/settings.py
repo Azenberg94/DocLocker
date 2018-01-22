@@ -79,10 +79,10 @@ WSGI_APPLICATION = 'DocLocker.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql', 
-        'NAME': 'coffrefort',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',   # Or an IP Address that your DB is hosted on
+        'NAME': 'heroku_095ffcc1072206b',
+        'USER': 'b5b71a0457d2c2',
+        'PASSWORD': 'a4d789dc',
+        'HOST': 'eu-cdbr-west-01.cleardb.com',   # Or an IP Address that your DB is hosted on
         'PORT': '3306',
     }
 }
