@@ -44,6 +44,6 @@ class BootstrapSignupForm(UserCreationForm):
 class BootstrapValidationForm(AuthenticationForm):
     """Authentication form which uses boostrap CSS."""
     code = forms.CharField(label=_("Code"),
-                               widget=forms.NumberInput({
+                               widget=forms.TextInput({
                                    'class': 'form-control',
                                    'placeholder':'123456'}))
