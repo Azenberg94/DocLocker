@@ -263,15 +263,18 @@ def uploadDoc(request):
         myfile = request.FILES['myfile']
         filename = myfile.name
         extension = os.path.splitext(filename)[1]
+
         if(extension == ".bin"):
             errorMsg.append('.bin files are not accepted')
+
         cursor = connection.cursor()
-        queryString = "SELECT id from file where name='" + filename + "';";
+        queryString = "SELECT id FROM file WHERE name='" + filename + "' AND userId = '" + str(userId) + "';";
         cursor.execute(queryString)
         filenamerow = cursor.fetchone();
+
         if filename == 'pass' or filename == 'passTemp':
             errorMsg.append('Unallowed name of file')
-        elif (filenamerow!= None) : 
+        elif (filenamerow != None) : 
             errorMsg.append('Filename already exists')
 
 
@@ -459,10 +462,10 @@ def downloadDoc(request):
                     queryString = "SELECT server_path FROM file WHERE id = '" + docId + "';"
                     cursor.execute(queryString);
                     filePath = cursor.fetchone()[0];
-                    binPath = os.path.dirname(os.path.abspath(filePath))+"\\key-"+ docId +".bin";
+                    binPath = os.path.dirname(os.path.abspath(filePath)) + "/key-"+ docId + ".bin";
                     os.remove(binPath)
                     os.remove(filePath)
-                    queryString = "delete FROM file WHERE id = '" + str(docId) + "'"
+                    queryString = "DELETE FROM file WHERE id = '" + str(docId) + "'"
                     cursor.execute(queryString)
 
 
