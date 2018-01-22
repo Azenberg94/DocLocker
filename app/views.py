@@ -14,17 +14,17 @@ from django.core.files.storage import FileSystemStorage
 from ratelimit.decorators import ratelimit
 from app.utils.encryption import cbc
 from django.shortcuts import redirect
-from django.core.files.temp import NamedTemporaryFile
-from wsgiref.util import FileWrapper
-from subprocess import Popen
+from Crypto.PublicKey import RSA
+from Crypto.Protocol.KDF import PBKDF2
+from Crypto.Cipher import PKCS1_OAEP
 
-import tempfile
 import app.forms
 import re
 import hashlib
 import string
 import random
 import os
+import time
 
 
 
@@ -78,6 +78,7 @@ def signup(request):
         pwd = request.POST.get('password')
         confirmPwd = request.POST.get('confirmPassword')
         phoneNumber = request.POST.get('phoneNumber')
+        passphrase = request.POST.get('passphrase')
         #sendCode("azedine");
         #verifyCode("124545", "azedine");
         internationalPhoneNumber = formatNumberToInternationNumber(phoneNumber);
@@ -91,15 +92,35 @@ def signup(request):
             msgError.append("Invalid password : minimum 8 characters, must contain at least one of the following: upper/lowercase, number and specific character (characters \"_\" not accepted) ! ");
         elif(confirmPwd != pwd):
             msgError.append("Confirmation password is different from password");
-        if(len(msgError)==0) :
-            liste_char=string.ascii_letters+string.digits
-            salty =""
-            for i in range(50):
-                salty+=liste_char[random.randint(0,len(liste_char)-1)]
-            pwdSalty = pwd + salty
+
+        # If there's no error
+        if(len(msgError) == 0) :
+            # Definition of the salt
+            salt = '-docLocker-' + username + '-' + str(len(username) * 2018)
+
+            # Salt and hash the password
+            pwdSalty = pwd + salt
             myHash = hashlib.sha256(pwdSalty.encode("utf-8")).hexdigest()
 
-            queryString = "insert into user VALUES (null, '"+username+"', '" +myHash+ "', '"+salty+"'  , '"+internationalPhoneNumber+"', null, null)";
+            # Creation of the passphrase file
+            if not os.path.exists('uploaddoc/' + username):
+                os.makedirs('uploaddoc/' + username)
+
+            filepath = 'uploaddoc/' + username + '/pass'
+            f = open(filepath, 'w+')
+            f.write(passphrase)
+            f.close()
+
+            # Encryption of the passphrase file
+            tempFilePath = 'uploaddoc/' + username + '/passTemp'
+            session_key = myHash.encode('utf-8')
+            IV = bytearray(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')
+            cbc('encrypt', session_key, IV, filepath, tempFilePath)
+            os.remove(filepath)
+            os.rename(tempFilePath, filepath)
+
+            # Saving the new user in the DB
+            queryString = "INSERT INTO user VALUES (null, '" + username + "', '"  + myHash +  "', '" + salt + "'  , '" + internationalPhoneNumber + "', null, null)";
             connection.cursor().execute(queryString)
             successfulCreation = True;
         else:
@@ -123,6 +144,7 @@ def signup(request):
 def login(request):
     if(request.session.get('validated', None) == True):
         return redirect('/home')
+
     msgError = []
 
     was_limited = getattr(request, 'limited', False)
@@ -221,43 +243,95 @@ def logout(request):
     return redirect('/home')
 
 def uploadDoc(request):
+    # Control of the authentificatin
     if(request.session.get('validated', None) == None):
         return redirect('/home')
 
+    # If a POST request exists...
+    errorMsg = []
+
     if request.method == 'POST' and request.FILES['myfile']:
+        # Getting session informations
         username = request.session['username']
         userId = request.session['userId']
 
+        # Uploading the file
         myfile = request.FILES['myfile']
-        if not os.path.exists('uploaddoc/' + username):
-            os.makedirs('uploaddoc/' + username)
         fs = FileSystemStorage()
         path = fs.save("uploaddoc/"+ username + "/" + myfile.name, myfile)
         filename = myfile.name
+
+        if filename == 'pass' or filename == 'passTemp':
+            errorMsg.append('Unallowed name of file')
+        else:  
+            # Storing the file in the DB
+            cursor = connection.cursor()
+            queryString = "INSERT INTO file VALUES (null, '" + filename + "', '" + path + "', '" + str(userId) + "')";
+            cursor.execute(queryString)
+
+            # Creating a random symmetric session key and the initializating vector
+            charList = string.ascii_letters + string.digits
         
-        cursor = connection.cursor()
-        queryString = "INSERT INTO file VALUES (null, '"+filename+"', '" +path+ "', '"+str(userId)+"')";
-        cursor.execute(queryString)
+            session_key = username + '-'
+            for i in range(25):
+                session_key += charList[random.randint(0, len(charList) - 1)]
 
-        queryString = "SELECT MAX(id) FROM file WHERE userId = '" + str(userId) + "'"
-        cursor.execute(queryString)
-        row = cursor.fetchone()
-        fileId = str(row[0])
+            IV = username + '-' + str(userId * 2018)
 
-        iv = username + '-' + fileId
-        tempFilename = filename.split('.')[0] + '_' + iv + '.' + filename.split('.')[1]
+            session_key = bytearray(hashlib.sha256(session_key.encode("utf-8")).hexdigest(), 'utf-8')
+            IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
+
+            # Symmetric encryption (CBC)
+            tempFilename = filename.split('.')[0] + '-' + str(time.time()).split('.')[0] + '-temp.' + filename.split('.')[1]
+            cbc('encrypt', session_key, IV, path, 'uploaddoc/' + username + '/' + tempFilename)
+            os.remove(path)
+            os.rename('uploaddoc/' + username + '/' + tempFilename, path)
+
+            # Getting and decrypting the saved passphrase of the user
+            filePath = 'uploaddoc/' + username + '/pass'
+            filePathTemp = 'uploaddoc/' + username + '/pass-temp'
+
+            queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
+            cursor.execute(queryString)
+            password = cursor.fetchone()[0]
+            password = password.encode('utf-8')
+            IV = '-docLocker-' + username + '-' + str(len(username) * 2018)
+            IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
+            cbc('decrypt', password, IV, filePath, filePathTemp)
+
+            f = open(filePathTemp, 'r')
+            passphrase = f.read()
+            f.close()
+            os.remove(filePathTemp)
+
+            # Asymmetric encryption of the file's symmetric keypass
+            passphrase = hashlib.sha256(passphrase.encode("utf-8")).hexdigest()
+            salt = '-docLocker-' + username + '-' + str(userId * 2018) + '-' + str(len(username) * 2018)
+            salt = bytes(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')   # replace with random salt if you can store one
+    
+            master_key = PBKDF2(passphrase, salt, count = 1000)  # bigger count = better
+
+            def my_rand(n):
+                # kluge: use PBKDF2 with count=1 and incrementing salt as deterministic PRNG
+                my_rand.counter += 1
+                return PBKDF2(master_key, bytes("my_rand:%d" % my_rand.counter, 'utf-8'), dkLen = n, count = 1)
+
+            my_rand.counter = 0
+            RSAkey = RSA.generate(2048, randfunc=my_rand)
+
+            queryString = "SELECT MAX(id) FROM file WHERE userId = '" + str(userId) + "'"
+            cursor.execute(queryString)
+            fileId = cursor.fetchone()[0]
+            cursor.close()
+            filePath = 'uploaddoc/' + username + '/key-' + str(fileId) + '.bin'
+
+            f = open(filePath, 'wb+')
+            print(session_key.decode('utf-8'))
+            cipher = PKCS1_OAEP.new(RSAkey.publickey())
+            f.write(cipher.encrypt(session_key))
+            f.close()
         
-        queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
-        cursor.execute(queryString)
-        row = cursor.fetchone()
-        password = bytearray(row[0].encode('utf-8'))
-        iv = bytearray(hashlib.sha256(iv.encode("utf-8")).hexdigest(), 'utf-8')
-
-        cbc('encrypt', password, iv, path, 'uploaddoc/' + username + '/' + tempFilename)
-        os.remove(path)
-        os.rename('uploaddoc/' + username + '/' + tempFilename, path)
-        
-
+    # Make the render
     assert isinstance(request, HttpRequest)
     return render(
         request,
