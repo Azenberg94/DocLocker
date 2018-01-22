@@ -221,7 +221,6 @@ def twoFactor(request):
 
             return redirect('/home')
         else:
-            request.session.flush()
             msgError.append(verify)
 
     return render(
