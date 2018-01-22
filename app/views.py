@@ -14,14 +14,18 @@ from django.core.files.storage import FileSystemStorage
 from ratelimit.decorators import ratelimit
 from app.utils.encryption import cbc
 from django.shortcuts import redirect
+from django.core.files.temp import NamedTemporaryFile
+from wsgiref.util import FileWrapper
+from subprocess import Popen
 
-
+import tempfile
 import app.forms
 import re
 import hashlib
 import string
 import random
 import os
+
 
 
 
@@ -267,27 +271,48 @@ def uploadDoc(request):
 def downloadDoc(request):
     if(request.session.get('validated', None) == None):
         return redirect('/home')
+
+    errorMsg = []
+
     cursor = connection.cursor()
     if request.method == 'POST':
+        # Getting the path of the file wanted
         docId = request.POST.get('docId')
         queryString = "SELECT server_path FROM file WHERE id = '" + docId + "';"
         cursor.execute(queryString);
         filepath = cursor.fetchone()[0];
-        file_path = os.path.join(settings.MEDIA_ROOT, filepath)
-        if os.path.exists(file_path):
-            with open(file_path, 'rb') as fh:
-                response = HttpResponse(fh.read(), content_type="application/vnd.ms-excel")
+
+
+        # Getting the passphrase entered y the user
+        passphrase = request.POST.get('passphrase')
+        
+        if passphrase == None or passphrase == '':
+            errorMsg.append('You have to enter your passphrase to download your files !')
+        else:
+            # Checking is the passphrase is right
+
+
+            # Sending the file to the user
+            file_path = os.path.join(settings.MEDIA_ROOT, filepath)
+            if os.path.exists(file_path):
+                with open(file_path, 'rb') as f:
+                    filedata = f.read()
+
+                response = HttpResponse(filedata, content_type="application/vnd.ms-excel")
                 response['Content-Disposition'] = 'inline; filename=' + os.path.basename(file_path)
+                os.remove(file_path)
                 return response
-        raise Http404
+            raise Http404
 
 
-    userId = request.session['userId']
+        # Querying for user's files
+        userId = request.session['userId']
     
-    queryString = "SELECT name, id FROM file WHERE userId = '" + str(userId) + "';"
-    cursor.execute(queryString);
-    filenames = cursor.fetchmany(50);
-    table = buildFileNameTable(filenames);
+        queryString = "SELECT name, id FROM file WHERE userId = '" + str(userId) + "';"
+        cursor.execute(queryString);
+        filenames = cursor.fetchmany(50);
+        table = buildFileNameTable(filenames);
+
     return render(
         request,
         'app/downloadDoc.html',

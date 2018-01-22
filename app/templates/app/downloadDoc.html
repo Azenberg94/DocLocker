@@ -5,6 +5,7 @@
     function updateDocId(id) {
         document.getElementById('docId').value = id;
         document.uploadForm.submit();
+        document.getElementById('passphrase').value = ''
     }
 </script>
 
@@ -15,6 +16,12 @@
             <form action="" method="post" name="uploadForm" class="form-horizontal" enctype="multipart/form-data">
                 {% csrf_token %}
                 <h4>Download Doc</h4>
+                <div class="form-group">
+                    <label for="passphrase" class="col-md-2 control-label">Passphrase</label>
+                    <div class="col-md-10">
+                        <input type="text" id="passphrase" name="passphrase" maxlength="255" placeholder="Enter your secret passphrase" />
+                    </div>
+                </div>
                 <hr />
                 {{tableFiles |safe }}
                 <input name="docId" id="docId" type="hidden" value="0" />
