@@ -96,7 +96,12 @@ def signup(request):
         # If there's no error
         if(len(msgError) == 0) :
             # Definition of the salt
-            salt = '-docLocker-' + username + '-' + str(len(username) * 2018)
+            charList = string.ascii_letters + string.digits
+        
+            salt = ''
+            for i in range(50):
+                salt += charList[random.randint(0, len(charList) - 1)]
+
 
             # Salt and hash the password
             pwdSalty = pwd + salt
@@ -300,12 +305,13 @@ def uploadDoc(request):
             filePath = 'uploaddoc/' + username + '/pass'
             filePathTemp = 'uploaddoc/' + username + '/pass-temp'
 
-            queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
+            queryString = "SELECT password, salt FROM user WHERE id = '" + str(userId) + "'"
             cursor.execute(queryString)
-            password = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            password = row[0]
+            salt = row[1]
             password = password.encode('utf-8')
-            IV = '-docLocker-' + username + '-' + str(len(username) * 2018)
-            IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
+            IV = bytearray(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')
             cbc('decrypt', password, IV, filePath, filePathTemp)
 
             f = open(filePathTemp, 'r')
@@ -383,13 +389,15 @@ def downloadDoc(request):
             errorMsg.append('You have to enter your passphrase to download your files !')
         else:
             # Checking is the passphrase is right
-            queryString = "SELECT password FROM user WHERE id = '" + str(userId) + "'"
+            queryString = "SELECT password, salt FROM user WHERE id = '" + str(userId) + "'"
             cursor.execute(queryString)
-            password = cursor.fetchone()[0]
+            row = cursor.fetchone()
+            password = row[0]
+            salt = row[1]
+            print(salt)
 
             password = password.encode('utf-8')
-            IV = '-docLocker-' + username + '-' + str(len(username) * 2018)
-            IV = bytearray(hashlib.sha256(IV.encode("utf-8")).hexdigest(), 'utf-8')
+            IV = bytearray(hashlib.sha256(salt.encode("utf-8")).hexdigest(), 'utf-8')
             passFilePath = 'uploaddoc/' + username + '/pass'
             tempFileName = 'pass-temp' + str(time.time()).split('.')[0]
             tempFilePath = 'uploaddoc/' + username + '/' + tempFileName

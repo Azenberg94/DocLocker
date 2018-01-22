@@ -1,8 +1,10 @@
 <ul class="nav navbar-nav navbar-right">
     {% if request.session.validated %}
-    <li><a href="/" class="navbar-brand">{{request.session.username}}</a></li>
+    <li><span class="navbar-brand">Connected as : {{request.session.username}}</span></li>
     {% endif %}
+    {% if not request.session.validated %}
     <li><a href="{% url 'signup' %}">Sign up</a></li>
+    {% endif %}
     {% if request.session.validated %}
     <li><a href="{% url 'logout' %}">Log out</a></li>
     {% else %}
