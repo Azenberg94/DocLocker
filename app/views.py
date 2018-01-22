@@ -379,13 +379,13 @@ def downloadDoc(request):
             raise Http404
 
 
-        # Querying for user's files
-        userId = request.session['userId']
-    
-        queryString = "SELECT name, id FROM file WHERE userId = '" + str(userId) + "';"
-        cursor.execute(queryString);
-        filenames = cursor.fetchmany(50);
-        table = buildFileNameTable(filenames);
+    # Querying for user's files
+    userId = request.session['userId']
+
+    queryString = "SELECT name, id FROM file WHERE userId = '" + str(userId) + "';"
+    cursor.execute(queryString);
+    filenames = cursor.fetchmany(50);
+    table = buildFileNameTable(filenames);
 
     return render(
         request,
