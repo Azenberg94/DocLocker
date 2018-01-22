@@ -133,6 +133,8 @@ STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static'),
 )
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 SESSION_COOKIE_AGE = 7200
